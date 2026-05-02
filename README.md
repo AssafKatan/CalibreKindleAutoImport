@@ -2,6 +2,8 @@
 I have made this automated system for calibre, it works by scanning for new files added to the calibre library and it sends them by mail to the kindle mail and by that it auto downloads on the kindle.
 The script knows to convert CBR/CBZ/PDF → EPUB for the best handeling on the kindle, currently it works the best in english.
 
+*Everytime it says "USER" you need to type the name of your linux user.*
+
 1. Downloading the required components for it to work(It includes calibre, if you already have it installed you can remove it from the commend)
 
 ```bash
