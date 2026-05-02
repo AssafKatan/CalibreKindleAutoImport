@@ -24,7 +24,7 @@ calibredb list --with-library /home/USER/calibre-library
 ```
 4. Create Calibre user(if you having problems with this step go to https://manual.calibre-ebook.com/generated/en/calibre-server.html).
 ```bash
-calibre-server --userdb /home/asaf/calibre-users.sqlite --manage-users
+calibre-server --userdb /home/USER/calibre-users.sqlite --manage-users
 ```
 5. Create Calibre service
 ```bash
@@ -75,7 +75,7 @@ account default : gmail
 ```
 make it executable:
 ```bash
-chmod 600 /home/asaf/.msmtprc
+chmod 600 /home/USER/.msmtprc
 ```
 ahead to amazon "Manage your content and devices" and ahead to perfrences.
 1. ahead all the way down and add your mail to the "Approved Personal Document E-mail List" (The mail you used for the script).
@@ -83,7 +83,7 @@ ahead to amazon "Manage your content and devices" and ahead to perfrences.
 
 7. Create Kindle sync script
 ```bash
-nano /home/asaf/auto-send-from-calibre.sh
+nano /home/USER/auto-send-from-calibre.sh
 ```
 then paste(and change the kindle email and path to the calibre library: 
 ```bash
