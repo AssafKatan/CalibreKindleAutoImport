@@ -92,7 +92,7 @@ then paste(and change the kindle email and path to the calibre library:
 #!/bin/bash
 
 LIBRARY="/home/USER/calibre-library"
-KINDLE_EMAIL="YOUR_KINDLE_EMAIL"
+KINDLE_EMAIL="Kindle@email.com"
 
 BASE_DIR="/home/USER/kindle-sync"
 LOG_FILE="$BASE_DIR/kindle-sync.log"
@@ -100,7 +100,7 @@ SENT_LOG="$BASE_DIR/sent.log"
 FAILED_DIR="$BASE_DIR/failed"
 TMP_DIR="$BASE_DIR/tmp"
 
-MAX_MB=24
+MAX_MB=50
 MAX_BYTES=$((MAX_MB * 1024 * 1024))
 RETRIES=3
 
@@ -114,8 +114,8 @@ log() {
 send_to_kindle() {
     local FILE_PATH="$1"
     local SUBJECT="$2"
-
     local SIZE
+
     SIZE=$(stat -c%s "$FILE_PATH")
 
     if [ "$SIZE" -gt "$MAX_BYTES" ]; then
@@ -126,7 +126,6 @@ send_to_kindle() {
 
     for TRY in $(seq 1 "$RETRIES"); do
         log "Sending attempt $TRY/$RETRIES: $FILE_PATH"
-
         echo "Book attached" | mail -s "$SUBJECT" -A "$FILE_PATH" "$KINDLE_EMAIL"
 
         if [ $? -eq 0 ]; then
@@ -149,31 +148,33 @@ process_book() {
         return
     fi
 
+    if [[ "$FULL_PATH" == *"/.caltrash/"* ]]; then
+        log "Ignoring Calibre trash: $FULL_PATH"
+        return
+    fi
+
     if grep -Fxq "$FULL_PATH" "$SENT_LOG"; then
         log "Already processed, skipping: $FULL_PATH"
         return
     fi
 
-    local FILE
+    local FILE EXT EXT_LOWER BASENAME WORK_DIR OUTPUT_FILE INPUT_FILE CBZ_FILE
     FILE="$(basename "$FULL_PATH")"
-
-    local EXT
     EXT="${FILE##*.}"
-    EXT="$(echo "$EXT" | tr '[:upper:]' '[:lower:]')"
-
-    local BASENAME
+    EXT_LOWER="$(echo "$EXT" | tr '[:upper:]' '[:lower:]')"
     BASENAME="${FILE%.*}"
 
-    local WORK_DIR="$TMP_DIR/${BASENAME}_work"
-    local OUTPUT_FILE="$TMP_DIR/${BASENAME}.epub"
-    local INPUT_FILE="$FULL_PATH"
+    WORK_DIR="$TMP_DIR/${BASENAME}_work"
+    OUTPUT_FILE="$TMP_DIR/${BASENAME}.epub"
+    INPUT_FILE="$FULL_PATH"
+    CBZ_FILE="$TMP_DIR/${BASENAME}.cbz"
 
-    rm -rf "$WORK_DIR" "$OUTPUT_FILE"
+    rm -rf "$WORK_DIR" "$OUTPUT_FILE" "$CBZ_FILE"
     mkdir -p "$WORK_DIR"
 
     log "Detected: $FULL_PATH"
 
-    case "$EXT" in
+    case "$EXT_LOWER" in
         epub)
             log "EPUB detected, sending directly."
             if send_to_kindle "$FULL_PATH" "$BASENAME"; then
@@ -181,8 +182,8 @@ process_book() {
             fi
             ;;
 
-        pdf)
-            log "PDF detected, converting to EPUB."
+        pdf|fb2|mobi|azw3)
+            log "$EXT_LOWER detected, converting to EPUB."
             ebook-convert "$FULL_PATH" "$OUTPUT_FILE"
 
             if [ -f "$OUTPUT_FILE" ]; then
@@ -220,8 +221,6 @@ process_book() {
                 return
             fi
 
-            local CBZ_FILE="$TMP_DIR/${BASENAME}.cbz"
-
             (
                 cd "$WORK_DIR" || exit 1
                 zip -r "$CBZ_FILE" ./*
@@ -250,12 +249,12 @@ process_book() {
             ;;
     esac
 
-    rm -rf "$WORK_DIR" "$OUTPUT_FILE" "$TMP_DIR/${BASENAME}.cbz"
+    rm -rf "$WORK_DIR" "$OUTPUT_FILE" "$CBZ_FILE"
 }
 
 log "Kindle sync service started."
 
-inotifywait -m -r -e close_write,moved_to --format "%w%f" "$LIBRARY" | while read FULL_PATH
+inotifywait -m -r -e close_write,moved_to,create --format "%w%f" "$LIBRARY" | while read FULL_PATH
 do
     process_book "$FULL_PATH"
 done
